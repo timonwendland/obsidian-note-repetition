@@ -1,0 +1,101 @@
+.note-repetition-view {
+    padding: var(--size-4-3);
+    padding-bottom: calc(var(--size-4-6) + env(safe-area-inset-bottom));
+}
+
+.note-repetition-summary {
+    align-items: center;
+    display: flex;
+    gap: var(--size-4-2);
+    justify-content: space-between;
+    margin-bottom: var(--size-4-4);
+}
+
+.note-repetition-count {
+    color: var(--text-muted);
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+}
+
+.note-repetition-section {
+    border-bottom: 1px solid var(--background-modifier-border);
+    padding: var(--size-4-1) 0;
+}
+
+.note-repetition-section > summary {
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: var(--font-ui-small);
+    font-weight: var(--font-semibold);
+    padding: var(--size-4-2);
+    text-transform: uppercase;
+}
+
+.note-repetition-row {
+    align-items: center;
+    display: flex;
+    min-width: 0;
+}
+
+.note-repetition-open {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    display: block;
+    flex: 1 1 auto;
+    height: auto;
+    min-width: 0;
+    padding: var(--size-4-2);
+    text-align: left;
+}
+
+.note-repetition-open:hover,
+.note-repetition-open:focus-visible {
+    background: var(--nav-item-background-hover);
+    color: var(--nav-item-color-hover);
+}
+
+.note-repetition-name,
+.note-repetition-meta {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.note-repetition-meta {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+}
+
+.note-repetition-more {
+    flex: 0 0 auto;
+    opacity: 0;
+}
+
+.note-repetition-row:hover .note-repetition-more,
+.note-repetition-row:focus-within .note-repetition-more {
+    opacity: 1;
+}
+
+.note-repetition-empty {
+    color: var(--text-muted);
+    padding: var(--size-4-6) var(--size-4-2);
+    text-align: center;
+}
+
+.note-repetition-status {
+    cursor: pointer;
+}
+
+.note-repetition-status.is-hidden {
+    display: none;
+}
+
+@media (hover: none), (max-width: 600px) {
+    .note-repetition-more {
+        min-height: 44px;
+        min-width: 44px;
+        opacity: 1;
+    }
+}

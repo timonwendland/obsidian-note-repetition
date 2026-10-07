@@ -6,7 +6,7 @@ on:
             - "*"
 
 env:
-    PLUGIN_NAME: obsidian-spaced-repetition
+    PLUGIN_NAME: obsidian-note-repetition
 
 jobs:
     release:
@@ -20,16 +20,23 @@ jobs:
         steps:
             - uses: actions/checkout@v6
 
+            - uses: pnpm/action-setup@v6
+              with:
+                  run_install: false
+
             - name: Use Node.js
               uses: actions/setup-node@v6
               with:
                   node-version: "24"
+                  cache: "pnpm"
 
-            - name: Build files
-              id: build
-              run: |
-                  npm install -g pnpm
-                  pnpm build
+            - name: Install dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Check and build
+              env:
+                  RELEASE_TAG: ${{ github.ref_name }}
+              run: pnpm check
 
             - name: Verify Files Exist
               id: verify-files
@@ -49,8 +56,6 @@ jobs:
                   mkdir ${{ env.PLUGIN_NAME }}
                   cp build/main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}
                   zip -r ${{ env.PLUGIN_NAME }}.zip ${{ env.PLUGIN_NAME }}
-                  ls
-                  echo "::set-output name=tag_name::$(git tag --sort version:refname | tail -n 1)"
 
             - name: Extract release notes
               id: extract-release-notes
@@ -79,7 +84,7 @@ jobs:
               with:
                   upload_url: ${{ steps.create-release.outputs.upload_url }}
                   asset_path: ./${{ env.PLUGIN_NAME }}.zip
-                  asset_name: ${{ env.PLUGIN_NAME }}-${{ steps.build.outputs.tag_name }}.zip
+                  asset_name: ${{ env.PLUGIN_NAME }}-${{ github.ref_name }}.zip
                   asset_content_type: application/zip
 
             - name: Upload main.js

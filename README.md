@@ -1,155 +1,113 @@
-# Obsidian Spaced Repetition Plugin
+# Note Repetition
 
-![SR_Banner](./docs/media/en/SR_Banner.jpg)
+Note Repetition is an Obsidian plugin. It shows whole notes to you again on a schedule. It does not use flashcards, decks, card syntax or card review screens.
 
-<img src="https://img.shields.io/github/downloads/st3v3nmw/obsidian-spaced-repetition/total" /> <img src="https://img.shields.io/github/downloads/st3v3nmw/obsidian-spaced-repetition/latest/total" /> <img src="https://img.shields.io/github/manifest-json/v/st3v3nmw/obsidian-spaced-repetition" /> <img alt="Codecov" src="https://img.shields.io/codecov/c/gh/st3v3nmw/obsidian-spaced-repetition">
+The plugin has two modes:
 
-Fight the forgetting curve by reviewing flashcards & notes using the FSRS or the SM-2 [spaced repetition](https://en.wikipedia.org/wiki/Spaced_repetition) algorithms.
+- **Spaced:** You rate each review. The rating changes the time until the next review.
+- **Interval:** The next review is a fixed time after the last review, for example one week.
 
-- For more information on how to use the plugin, check either the TL;DR on this page or the [documentation](https://stephenmwangi.com/obsidian-spaced-repetition/).
-- Raise an [issue](https://github.com/st3v3nmw/obsidian-spaced-repetition/issues/) if you have a feature request or a bug report.
-- Visit the [discussions](https://github.com/st3v3nmw/obsidian-spaced-repetition/discussions/) section for Q&A help, feedback, and general discussion.
-- The plugin has been translated into _Arabic, Chinese, Czech, Dutch, French, German, Italian, Korean, Japanese, Polish, Portuguese, Spanish, Russian, Turkish, and Ukrainian_ by the Obsidian community 😄.
-    - To help translate this plugin to your language, check the [translation guide here](https://stephenmwangi.com/obsidian-spaced-repetition/contributing/#translating_1).
+## Install
 
-<br/>
+The plugin is not in the Obsidian community plugin list. Install it manually.
 
-## Features⚡
+1. Install Node.js and pnpm 11.6 or later.
+2. In the repository folder, run `pnpm install`.
+3. Run `pnpm build`. This step makes `main.js` and `styles.css`.
+4. Copy `main.js`, `manifest.json` and `styles.css` to `<vault>/.obsidian/plugins/obsidian-note-repetition/`.
+5. In Obsidian, open **Settings > Community plugins** and enable **Note Repetition**.
 
-#### Reviewing Flashcards🗃️
+## Add a note
 
-- [Getting started](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/flashcards-overview/) (Using Obsidian's hierarchical tags or folder structure)
-- Creating Flashcards
-    - [Single-line style](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/q-and-a-cards/#single-line-basic) (`Question::Answer`)
-    - [Single-line reversed style](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/q-and-a-cards/#single-line-bidirectional) (`Question:::Answer`)
-    - [Multi-line style](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/q-and-a-cards/#multi-line-basic) (Separated by `?`)
-    - [Multi-line reversed style](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/q-and-a-cards/#multi-line-bidirectional) (Separated by `??`)
-    - [Cloze cards](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/cloze-cards/) (`==highlight==` your cloze deletions!, `**bolded text**`, `{{text in curly braces}}`, or use custom cloze patterns)
-    - Rich text support in flashcards (inherited from Obsidian)
-        - Images, Audio, & Video
-        - LaTeX
-        - Code syntax highlighting
-        - Footnotes
-- [Organize Decks](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/decks/) (Using Obsidian's hierarchical tags or folder structure)
-- [Card context - automatic titles based on headings](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/reviewing/#context) (i.e. `Note title > Heading 1 > Subheading`)
+Add these properties to the note:
 
-#### Reviewing Notes📄
+```yaml
+note-repetition: true
+repetition-mode: spaced
+```
 
-- [Getting started](https://stephenmwangi.com/obsidian-spaced-repetition/notes/)
-- [Due Notes for review](https://stephenmwangi.com/obsidian-spaced-repetition/notes/#note-review-queue)
-- [How to review a note](https://stephenmwangi.com/obsidian-spaced-repetition/notes/#reviewing)
+For a fixed interval, use:
 
-#### [Statistics📈](https://stephenmwangi.com/obsidian-spaced-repetition/flashcards/statistics/)
+```yaml
+note-repetition: true
+repetition-mode: interval
+repetition-every: 1w
+```
 
-<br/>
-<br/>
+You can also use the file menu (**Add to note repetition**, **Repeat weekly**, **Repeat monthly**) or the commands below.
 
-## Usage TL;DR🚀
+### Properties
 
-### Creating Decks
+| Property | Set by | Value | Function |
+|---|---|---|---|
+| `note-repetition` | You | `true` | Adds the note to the queue. |
+| `repetition-mode` | You | `spaced` or `interval` | Selects the mode. If it is missing, the plugin uses the default mode from the settings. |
+| `repetition-every` | You | A number and a unit: `d`, `w`, `m` or `y` (example: `3m`) | Sets the fixed interval. Necessary for interval mode. |
+| `repetition-due` | Plugin | Date, `YYYY-MM-DD` | Date of the next review. |
+| `repetition-last` | Plugin | Date, `YYYY-MM-DD` | Date of the last review. |
+| `repetition-interval` | Plugin | Days | Current interval. Spaced mode only. |
+| `repetition-ease` | Plugin | Number, 130 or more (default 250) | Current ease. Spaced mode only. |
 
-1. Add the tag `#flashcards` in a note, where you want to write your cards
-2. If you want to have your cards in a specific sub deck, then add your sub deck name to the tag like so: `#flashcards/YOUR_SUB_DECK_NAME`
-3. Write your card in the note which where you've added your tag
+If a value is not correct, the queue shows an error for that note.
 
-<br/>
+The plugin does not read or change the property `ToReview`.
 
-### Creating Cards
+## Review notes
 
-##### 1. Decide what card type you need:
+- To open the queue, click the calendar-clock icon in the ribbon or use the command **Open note repetition queue**.
+- To open the next due note, use **Review next due note**.
+- For an interval note, use **Mark current interval note reviewed**. The next due date is today plus the interval.
+- For a spaced note, use **Review current spaced note: Again**, **Hard**, **Good** or **Easy**.
+- To start the schedule again, use **Reset current note repetition schedule**.
+- To remove a note, use **Remove from note repetition** in the file menu.
 
-- Single line -> Card format:
-  `Question::Answer`
-- Single line reversable -> Card format:
-  `Question:::Answer`
-- Multi line -> Card format:
-    ```
-    Question
-    ?
-    Answer
-    ```
-- Multi line reversable -> Card format:
-    ```
-    Question
-    ??
-    Answer
-    ```
+## Spaced schedule
 
-##### 2. Write your card (In one of those formats) in a note that you have tagged as a deck
+The plugin calculates the next interval from the current interval *I* (days), the ease *E* (percent) and the delay *D* (days after the due date).
 
-<br/>
+| Rating | Ease | New interval |
+|---|---|---|
+| Easy | *E* + 20 | (*I* + *D*) × *E* × 1.3 / 100 |
+| Good | No change | (*I* + *D* / 2) × *E* / 100 |
+| Hard | *E* − 20, minimum 130 | (*I* + *D* / 4) × 0.5, minimum 1 |
+| Again | *E* − 20, minimum 130 | 0. The note is due again today. |
 
-### Reviewing Cards
+The values 250 (start ease), 1.3 (easy bonus) and 0.5 (hard factor) are defaults. The settings tab does not show them. To change them, edit `baseEase`, `easyBonus` and `lapsesIntervalChange` in the `data.json` file of the plugin.
 
-##### 1.1. Open the list of all decks with either of two commands(ctrl+p):
+The maximum interval is 36,525 days. The plugin rounds the interval to full days for the due date.
 
-- _Review Flashcards from all notes_
-  -> Here the algorithm decides based on your past reviews, which cards are due to review
-- _Select a deck to cram_
-  -> All decks and all cards are reviewable and the algorithm is fully ignored
+## Settings
 
-##### 1.2. Or open the list of all decks within your currently opened note(ctrl+p):
+| Setting | Function |
+|---|---|
+| Default mode | Mode for notes that you add from a command or the file menu. |
+| Default fixed interval | Interval for new interval notes. Examples: `7d`, `1w`, `1m`, `1y`. |
+| Start of review day | Time in `HH:mm:ss`. A review before this time counts for the previous day. |
+| Upcoming horizon | Number of future days that the queue shows. |
+| Ignored paths | Glob patterns, one for each line. The plugin ignores matching notes. Default: `**/*.excalidraw.md`. |
+| Open queue on startup | Opens the queue when Obsidian starts. |
+| Open next note after review | Opens the next due note after each review. |
+| Choose next note randomly | Selects the next due note at random, not by due date. |
+| Show file-menu actions | Adds the repetition actions to the file menu of Markdown notes. |
+| Show status bar | Shows the number of due notes in the status bar. |
+| Enable reminders | Shows a reminder when notes are due. The plugin does not show a reminder while you type. |
+| Reminder interval | Minutes between reminder checks (1 to 1,440). |
+| Reminder message | Text of the reminder. If it is empty, the reminder shows the number of due notes. |
+| Check on startup | Does one reminder check after startup. |
 
-- _Review flashcards in this note_
-  -> Here the algorithm decides based on your past reviews, which cards from this note are due to review
-- _Cram flashcards in this note_
-  -> All decks and all cards from this note are reviewable and the algorithm is fully ignored
+## Development
 
-![Deck view](./docs/media/en/deck-view.png)
+| Command | Function |
+|---|---|
+| `pnpm dev` | Builds the plugin and builds it again when a file changes. |
+| `pnpm build` | Does a type check and makes a production build. |
+| `pnpm test` | Runs the tests in `tests/note-repetition`. |
+| `pnpm check` | Runs the format check, lint, tests, build and version check. Run it before each commit. |
 
-##### 2. Select a deck via the list and click on the deck name
+Keep the version the same in `package.json`, `manifest.json` and `versions.json`. `pnpm check:version` checks this.
 
-##### 3. Rate your ability to remember the answer to the current question
+## Origin and license
 
-- This tells the algorithm what you know well and what you don't
+This plugin is a rewrite based on [obsidian-spaced-repetition](https://github.com/st3v3nmw/obsidian-spaced-repetition) by Stephen Mwangi and contributors. The note review idea and the scheduling formula come from that project. The flashcard functions are removed.
 
-![Card view](./docs/media/en/card-view.png)
-
-<br/>
-
-### Creating & reviewing whole notes
-
-Sometimes it makes more sense to recall a whole note, when it isn't just pure facts which you have to learn.
-This is where marking a note for review comes in handy.
-
-1. Just like with decks add the tag `#review` to your note to mark them as reviewable
-2. To see which notes are due for review open the note review queue via the command(ctrl+p): _Open Notes Review Queue in sidebar_
-3. There you can open up the notes for review, just as if you would open them up in your file explorer, only that they are sorted her by when they are due for review
-4. Once you have recalled/reviewed your note you can rate your recall ability by executing the command(ctrl+p, or just via the 3 dots next to the note): _Review note as YOUR_RATING_ - The algorithm will take your rating into account to calculate a new due date, when you have to review it again
-   <br/>
-
-## Links & Resources🔗
-
-- [Documentation](https://stephenmwangi.com/obsidian-spaced-repetition/).
-- [Roadmap](https://github.com/st3v3nmw/obsidian-spaced-repetition/projects/3/)
-- [Dev News](https://github.com/st3v3nmw/obsidian-spaced-repetition/discussions/categories/development-news)
-- [Issues](https://github.com/st3v3nmw/obsidian-spaced-repetition/issues/)
-- [Discussions](https://github.com/st3v3nmw/obsidian-spaced-repetition/discussions/)
-
-<br/>
-
-## Support Development💻
-
-<table>
-    <thead>
-        <tr>
-            <th>Stephen Mwangi (Owner)</th>
-            <th>Kyle Klus (Maintainer)</th>
-        </tr>
-    </thead>
-    <tbody>
-  <tr>
-    <td align="center">
-        <a href='https://ko-fi.com/M4M44DEN6' target='_blank' style="text-decoration: none;">
-            <img height='30' style='border:0px;height:30px;' src='https://cdn.ko-fi.com/cdn/kofi3.png?v=2' border='0' alt='Buy Me a Coffee at ko-fi.com' />
-        </a>
-    </td>
-    <td align="center">
-      <a href="https://github.com/KyleKlus" style="text-decoration: none;">
-        <img src="https://img.shields.io/badge/Kyle%20Klus-darkgreen?style=flat&logo=github&label=Github&link=https%3A%2F%2Fgithub.com%2FKyleKlus
-        " alt="Github">
-      </a>
-    </td>
-  </tr>
-    </tbody>
-</table>
+The license is MIT. See `LICENSE`.

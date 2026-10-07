@@ -1,24 +1,31 @@
 {
     "compilerOptions": {
-        "paths": {
-            "src/*": ["./src/*"]
-        },
         "inlineSourceMap": true,
         "inlineSources": true,
         "module": "ESNext",
         "target": "ES2018",
-        "allowJs": true,
-        "noImplicitAny": true,
+        "strict": true,
         "moduleResolution": "bundler",
         "esModuleInterop": true,
         "importHelpers": true,
         "types": ["node", "jest"],
-        "lib": ["dom", "dom.Iterable", "scripthost", "ES5", "ES6", "ES7", "ES2021"],
-        "jsx": "react",
-        "jsxFactory": "h",
-        "noEmit": true
+        "lib": ["DOM", "DOM.Iterable", "ES2021"],
+        "noEmit": true,
+        "skipLibCheck": true
     },
-    "include": ["src/**/*", "tests/**/*"],
-    "exclude": ["build", "coverage", "node_modules"],
-    "files": ["node_modules/jest-expect-message/types/index.d.ts", "eslint.config.mjs"]
+    "include": [
+        "src/main.ts",
+        "src/date-utils.ts",
+        "src/interval.ts",
+        "src/note-repetition-types.ts",
+        "src/properties.ts",
+        "src/review-manager.ts",
+        "src/review-queue.ts",
+        "src/review-queue-view.ts",
+        "src/scheduler.ts",
+        "src/settings.ts",
+        "src/settings-tab.ts",
+        "tests/note-repetition/**/*.ts"
+    ],
+    "exclude": ["build", "node_modules"]
 }

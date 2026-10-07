@@ -25,11 +25,8 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
-            - name: Lint
-              run: pnpm lint || (echo && echo "Run 'pnpm format' to fix." && exit 1)
-
-            - name: Test
-              run: pnpm test
+            - name: Check
+              run: pnpm check
 
             - name: Upload results to Codecov
               uses: codecov/codecov-action@v6

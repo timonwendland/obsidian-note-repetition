@@ -1,164 +1,326 @@
-import { Plugin } from "obsidian";
+import { Menu, Notice, Plugin, setIcon, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
 
-import { CommandManager } from "src/command-manager";
-import { DataManager } from "src/data/data-manager";
-import { DebugLoggerInstance } from "src/data/debug-logger";
-import { PluginDataError, PluginDataManager } from "src/data/plugin-data-manager";
-import { SRSettings } from "src/data/settings";
-import { SettingsManager } from "src/data/settings-manager";
-import { LocaleManagerInstance } from "src/lang/locale-manager";
-import { NextNoteReviewHandler } from "src/note/next-note-review-handler";
-import { NoteReviewQueue } from "src/note/note-review-queue";
-import { ReminderManager } from "src/scheduling/reminder-manager";
-import { REVIEW_QUEUE_VIEW_TYPE } from "src/ui/obsidian-ui-components/item-views/review-queue-list-view";
-import { UIManager } from "src/ui/ui-manager";
-import { TextDirection } from "src/utils/strings";
+import { NoteRepetitionSettings, ReviewAction } from "./note-repetition-types";
+import { ReviewManager } from "./review-manager";
+import { dueReviewItems } from "./review-queue";
+import { NOTE_REPETITION_VIEW, ReviewQueueView } from "./review-queue-view";
+import { NoteRepetitionSettingTab } from "./settings-tab";
+import { DEFAULT_SETTINGS, normalizeSettings } from "./settings";
+import "./styles.css";
 
-export default class SRPlugin extends Plugin {
-    private _uiManager: UIManager | null = null;
-    private _dataManager: DataManager | null = null;
+export default class NoteRepetitionPlugin extends Plugin {
+    public settings: NoteRepetitionSettings = { ...DEFAULT_SETTINGS };
+    public reviewManager!: ReviewManager;
 
-    private _nextNoteReviewHandler: NextNoteReviewHandler | null = null;
-    private _commandManager: CommandManager | null = null;
-    private _reminderManager: ReminderManager | null = null;
-    public isInitialized: boolean = false;
+    private statusBar: HTMLElement | null = null;
+    private removeManagerListener: (() => void) | null = null;
+    private reminderTimer: number | null = null;
 
-    async onload(): Promise<void> {
-        try {
-            // Load the plugin data and settings first, as other components depend on it being available during their initialization.
-            const pluginDataManager = new PluginDataManager(this);
-            await pluginDataManager.loadData();
+    public async onload(): Promise<void> {
+        this.settings = normalizeSettings(await this.loadData());
+        this.reviewManager = new ReviewManager(this.app, this, () => this.settings);
+        this.registerView(
+            NOTE_REPETITION_VIEW,
+            (leaf: WorkspaceLeaf) => new ReviewQueueView(leaf, this),
+        );
+        this.reviewManager.initialize();
+        this.removeManagerListener = this.reviewManager.onChange(() => this.updateStatusBar());
 
-            const settingsManager = new SettingsManager(
-                pluginDataManager.pluginData.settings,
-                async (settings: SRSettings) => {
-                    await pluginDataManager.writeSettings(settings);
-                },
-            );
+        this.addSettingTab(new NoteRepetitionSettingTab(this));
+        this.addRibbonIcon("calendar-clock", "Open note repetition queue", () => {
+            void this.openQueue();
+        });
+        this.statusBar = this.addStatusBarItem();
+        this.statusBar.addClass("note-repetition-status");
+        this.statusBar.setAttribute("role", "button");
+        this.statusBar.setAttribute("tabindex", "0");
+        this.statusBar.addEventListener("click", () => void this.openQueue());
+        this.statusBar.addEventListener("keydown", (event) => {
+            if (event.key === "Enter" || event.key === " ") void this.openQueue();
+        });
 
-            this.dataManager = new DataManager(this, pluginDataManager, settingsManager);
-            const uiManager = new UIManager(this, settingsManager);
-            this.uiManager = uiManager;
-            this.commandManager = new CommandManager(this, settingsManager, uiManager);
-
-            this.app.workspace.onLayoutReady(async () => {
-                this.dataManager.loadData();
-
-                // Set the preferred locale if it is not the default
-                if (settingsManager.settings.preferredLocale !== "-") {
-                    LocaleManagerInstance.getInstance().currentLocale =
-                        settingsManager.settings.preferredLocale;
+        this.registerCommands();
+        this.registerEvent(
+            this.app.workspace.on("file-menu", (menu, file) => {
+                if (
+                    this.settings.showFileMenu &&
+                    file instanceof TFile &&
+                    file.extension === "md"
+                ) {
+                    this.addNoteActions(menu, file);
                 }
+            }),
+        );
 
-                const noteReviewQueue = new NoteReviewQueue();
-                this._nextNoteReviewHandler = new NextNoteReviewHandler(
-                    this.app,
-                    settingsManager.settings,
-                    noteReviewQueue,
+        this.app.workspace.onLayoutReady(() => {
+            this.updateStatusBar();
+            this.restartReminders();
+            if (this.settings.enableReviewPaneOnStartup) void this.openQueue();
+        });
+    }
+
+    public onunload(): void {
+        this.removeManagerListener?.();
+        if (this.reminderTimer !== null) window.clearInterval(this.reminderTimer);
+    }
+
+    public async saveSettings(restartReminders = false): Promise<void> {
+        await this.saveData({ version: 1, settings: this.settings });
+        this.reviewManager.refresh();
+        this.updateStatusBar();
+        if (restartReminders) this.restartReminders();
+    }
+
+    public async openQueue(): Promise<void> {
+        let leaf = this.app.workspace.getLeavesOfType(NOTE_REPETITION_VIEW)[0];
+        if (!leaf) {
+            leaf = this.app.workspace.getRightLeaf(false) ?? this.app.workspace.getLeaf("tab");
+            await leaf.setViewState({ type: NOTE_REPETITION_VIEW, active: true });
+        }
+        await this.app.workspace.revealLeaf(leaf);
+    }
+
+    public async openNote(path: string): Promise<void> {
+        const file = this.app.vault.getAbstractFileByPath(path);
+        if (file instanceof TFile) await this.app.workspace.getLeaf(false).openFile(file);
+    }
+
+    public async openNextDueNote(): Promise<void> {
+        const due = dueReviewItems(this.reviewManager.getItems());
+        if (due.length === 0) {
+            new Notice("No notes are due.");
+            return;
+        }
+        const item = this.settings.openRandomNote
+            ? due[Math.floor(Math.random() * due.length)]
+            : due[0];
+        await this.openNote(item.note.path);
+    }
+
+    public addNoteActions(menu: Menu, file: TFile): void {
+        const item = this.reviewManager.getItem(file);
+        if (!item) {
+            menu.addItem((entry) =>
+                entry
+                    .setTitle("Add to note repetition")
+                    .setIcon("calendar-plus")
+                    .onClick(() => void this.reviewManager.enable(file)),
+            );
+            menu.addItem((entry) =>
+                entry
+                    .setTitle("Repeat weekly")
+                    .setIcon("calendar-clock")
+                    .onClick(() => void this.reviewManager.enable(file, "interval", "1w")),
+            );
+            menu.addItem((entry) =>
+                entry
+                    .setTitle("Repeat monthly")
+                    .setIcon("calendar-days")
+                    .onClick(() => void this.reviewManager.enable(file, "interval", "1m")),
+            );
+            return;
+        }
+
+        menu.addItem((entry) =>
+            entry
+                .setTitle("Open for review")
+                .setIcon("file-clock")
+                .onClick(() => void this.openNote(file.path)),
+        );
+        if (item.definition.mode === "spaced") {
+            for (const [action, label, icon] of [
+                ["again", "Again", "rotate-ccw"],
+                ["hard", "Hard", "chevron-right"],
+                ["good", "Good", "check"],
+                ["easy", "Easy", "fast-forward"],
+            ] as const) {
+                menu.addItem((entry) =>
+                    entry
+                        .setTitle(label)
+                        .setIcon(icon)
+                        .onClick(() => void this.completeReview(file, action)),
                 );
-
-                await this.dataManager.initOSRCore(noteReviewQueue, async () => {
-                    await this.onOsrVaultDataChanged();
-                });
-
-                await this.uiManager.onLayoutReady();
-                this.commandManager.onLayoutReady();
-                this._reminderManager = new ReminderManager(this, this.uiManager, this.dataManager);
-
-                this.isInitialized = true;
-                this._reminderManager.restartReviewReminders();
-            });
-        } catch (error) {
-            if (error instanceof PluginDataError || error instanceof Error) {
-                console.warn("SRPlugin: Error in onLoad", error.message);
-                DebugLoggerInstance.getInstance().log(
-                    "SRPlugin: Error in onLoad: " + error.message,
-                    "error",
-                );
-            } else {
-                console.warn("SRPlugin: Error in onLoad");
-                DebugLoggerInstance.getInstance().log("SRPlugin: Error in onLoad", "error");
             }
+        } else {
+            menu.addItem((entry) =>
+                entry
+                    .setTitle("Mark reviewed")
+                    .setIcon("check")
+                    .onClick(() => void this.completeReview(file, "reviewed")),
+            );
+        }
+        menu.addSeparator();
+        menu.addItem((entry) =>
+            entry
+                .setTitle("Reset schedule")
+                .setIcon("refresh-cw")
+                .onClick(() => void this.reviewManager.reset(file)),
+        );
+        menu.addItem((entry) =>
+            entry
+                .setTitle("Remove from note repetition")
+                .setIcon("calendar-x")
+                .onClick(() => void this.reviewManager.remove(file)),
+        );
+    }
+
+    private registerCommands(): void {
+        this.addCommand({
+            id: "open-note-repetition-queue",
+            name: "Open note repetition queue",
+            callback: () => void this.openQueue(),
+        });
+        this.addCommand({
+            id: "review-next-due-note",
+            name: "Review next due note",
+            callback: () => void this.openNextDueNote(),
+        });
+        this.addCommand({
+            id: "enable-current-note",
+            name: "Add current note to note repetition",
+            checkCallback: (checking) => {
+                const file = this.activeMarkdownFile();
+                if (!file || this.reviewManager.getItem(file)) return false;
+                if (!checking) void this.reviewManager.enable(file);
+                return true;
+            },
+        });
+        for (const [id, name, every] of [
+            ["weekly", "Repeat current note weekly", "1w"],
+            ["monthly", "Repeat current note monthly", "1m"],
+        ] as const) {
+            this.addCommand({
+                id: `repeat-current-note-${id}`,
+                name,
+                checkCallback: (checking) => {
+                    const file = this.activeMarkdownFile();
+                    if (!file) return false;
+                    if (!checking) void this.reviewManager.setMode(file, "interval", every);
+                    return true;
+                },
+            });
+        }
+        this.addCommand({
+            id: "mark-current-note-reviewed",
+            name: "Mark current interval note reviewed",
+            checkCallback: (checking) => this.commandReview(checking, "reviewed", "interval"),
+        });
+        for (const [action, label] of [
+            ["again", "Again"],
+            ["hard", "Hard"],
+            ["good", "Good"],
+            ["easy", "Easy"],
+        ] as const) {
+            this.addCommand({
+                id: `review-current-note-${action}`,
+                name: `Review current spaced note: ${label}`,
+                checkCallback: (checking) => this.commandReview(checking, action, "spaced"),
+            });
+        }
+        this.addCommand({
+            id: "reset-current-note-schedule",
+            name: "Reset current note repetition schedule",
+            checkCallback: (checking) => {
+                const file = this.activeMarkdownFile();
+                if (!file || !this.reviewManager.getItem(file)) return false;
+                if (!checking) void this.reviewManager.reset(file);
+                return true;
+            },
+        });
+    }
+
+    private commandReview(
+        checking: boolean,
+        action: ReviewAction,
+        mode: "spaced" | "interval",
+    ): boolean {
+        const file = this.activeMarkdownFile();
+        if (!file || this.reviewManager.getItem(file)?.definition.mode !== mode) return false;
+        if (!checking) void this.completeReview(file, action);
+        return true;
+    }
+
+    private activeMarkdownFile(): TFile | null {
+        const file: TAbstractFile | null = this.app.workspace.getActiveFile();
+        return file instanceof TFile && file.extension === "md" ? file : null;
+    }
+
+    private async completeReview(file: TFile, action: ReviewAction): Promise<void> {
+        try {
+            await this.reviewManager.complete(file, action);
+            new Notice(`Reviewed ${file.basename}`);
+            if (this.settings.autoNextNote) await this.openNextDueNote();
+        } catch (error) {
+            new Notice(error instanceof Error ? error.message : "Could not update this note.");
         }
     }
 
-    get reminderManager(): ReminderManager {
-        if (this._reminderManager === null) throw new Error("Reminder manager not initialized!!!");
-        return this._reminderManager;
+    private updateStatusBar(): void {
+        if (!this.statusBar) return;
+        const count = dueReviewItems(this.reviewManager.getItems()).length;
+        this.statusBar.empty();
+        setIcon(this.statusBar, "calendar-clock");
+        this.statusBar.appendText(` ${count}`);
+        this.statusBar.setAttribute(
+            "aria-label",
+            count === 1 ? "1 note due" : `${count} notes due`,
+        );
+        this.statusBar.toggleClass("is-hidden", !this.settings.showStatusBar);
     }
 
-    get uiManager(): UIManager {
-        if (this._uiManager === null) throw new Error("UI manager not initialized!!!");
-        return this._uiManager;
+    private restartReminders(): void {
+        if (this.reminderTimer !== null) window.clearInterval(this.reminderTimer);
+        this.reminderTimer = null;
+        if (!this.settings.enableReviewReminders) return;
+
+        if (this.settings.reviewReminderCheckOnStartup) void this.checkReminder();
+        const minutes = Math.max(1, Math.min(1440, this.settings.reviewReminderIntervalMinutes));
+        this.reminderTimer = window.setInterval(() => void this.checkReminder(), minutes * 60_000);
+        this.registerInterval(this.reminderTimer);
     }
 
-    set uiManager(uiManager: UIManager) {
-        this._uiManager = uiManager;
+    private checkReminder(): void {
+        this.reviewManager.refresh();
+        const due = dueReviewItems(this.reviewManager.getItems());
+        if (due.length === 0 || this.isEditingText()) return;
+
+        const message =
+            this.settings.reviewReminderMessage.trim() ||
+            (due.length === 1
+                ? "1 note is due for review."
+                : `${due.length} notes are due for review.`);
+        if (this.settings.reviewReminderShowNotice) new Notice(message, 8000);
+        if (this.settings.reviewReminderPlaySound) this.playReminderTone();
+        if (this.settings.reviewReminderBounceDock) this.requestDesktopAttention();
     }
 
-    get nextNoteReviewHandler(): NextNoteReviewHandler {
-        if (this._nextNoteReviewHandler === null)
-            throw new Error("Next note review handler not initialized!!!");
-        return this._nextNoteReviewHandler;
+    private isEditingText(): boolean {
+        const active = activeDocument.activeElement;
+        return (
+            active instanceof HTMLInputElement ||
+            active instanceof HTMLTextAreaElement ||
+            (active instanceof HTMLElement &&
+                (active.isContentEditable || active.closest(".cm-editor") !== null))
+        );
     }
 
-    get commandManager(): CommandManager {
-        if (this._commandManager === null) throw new Error("Command manager not initialized!!!");
-        return this._commandManager;
+    private playReminderTone(): void {
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        gain.gain.value = 0.04;
+        oscillator.frequency.value = 660;
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.12);
+        oscillator.addEventListener("ended", () => void context.close());
     }
 
-    set commandManager(commandManager: CommandManager) {
-        this._commandManager = commandManager;
-    }
-
-    isUiManagerLoaded(): boolean {
-        return this._uiManager !== null;
-    }
-
-    get dataManager(): DataManager {
-        if (this._dataManager === null) throw new Error("Data manager not initialized!!!");
-        return this._dataManager;
-    }
-
-    set dataManager(dataManager: DataManager) {
-        this._dataManager = dataManager;
-    }
-
-    isDataManagerLoaded(): boolean {
-        return this._dataManager !== null;
-    }
-
-    onunload(): void {
-        this.reminderManager.stopReviewReminders();
-        this.app.workspace.getLeavesOfType(REVIEW_QUEUE_VIEW_TYPE).forEach((leaf) => leaf.detach());
-        this.uiManager.destroy();
-        this.commandManager.onunload();
-    }
-
-    public addCustomHotkeys() {
-        this.commandManager.addCustomHotkeys();
-    }
-
-    public removeCustomHotkeys() {
-        this.commandManager.removeCustomHotkeys();
-    }
-
-    /**
-     * Gets the text direction setting for the current Obsidian instance.
-     */
-    public getObsidianRtlSetting(): TextDirection {
-        return activeDocument.body.hasClass("mod-rtl") ? TextDirection.Rtl : TextDirection.Ltr;
-    }
-
-    /**
-     * Called when the OSR app core's data has changed.
-     *
-     * Anything that needs to be updated in the UI because of this change should be done here.
-     */
-    private async onOsrVaultDataChanged() {
-        await this.uiManager.updateStatusBar();
-        if (this.dataManager.data.settings.enableNoteReviewPaneOnStartup) {
-            this.uiManager.sidebarManager.redraw();
-        }
+    private requestDesktopAttention(): void {
+        const electronWindow = window as unknown as {
+            electron?: { remote?: { app?: { dock?: { bounce: () => void } } } };
+        };
+        electronWindow.electron?.remote?.app?.dock?.bounce();
     }
 }
