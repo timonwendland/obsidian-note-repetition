@@ -9,7 +9,7 @@ const [packageJson, manifest, versions] = await Promise.all([
 ]);
 
 const failures = [];
-const expectedId = "obsidian-note-repetition";
+const expectedId = "note-repetition";
 
 if (packageJson.name !== expectedId) {
     failures.push(`package.json name must be ${expectedId}`);

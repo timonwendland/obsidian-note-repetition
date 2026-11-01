@@ -1,21 +1,16 @@
-# Note Repetition
+<img src="assets/card.png" alt="Note Repetition, an Obsidian plugin" width="100%">
 
-Note Repetition is an Obsidian plugin. It shows whole notes to you again on a schedule. It does not use flashcards, decks, card syntax or card review screens.
+You save an article because it changed how you think about something, and a month later you can't say what it argued. Most notes get written once and never read again, so a vault slowly fills with ideas you agreed with at some point.
 
-The plugin has two modes:
+Note Repetition puts whole notes back in front of you on a schedule. Mark a note with one property and it joins a queue, either at a fixed rhythm (say, once a month) or with spaced repetition, where you rate each review and the gap grows when you remember the note well. There are no flashcards and no card syntax. You read the note as you wrote it, and the schedule lives in its properties, so it stays plain Markdown.
 
-- **Spaced:** You rate each review. The rating changes the time until the next review.
-- **Interval:** The next review is a fixed time after the last review, for example one week.
+<img src="assets/demo.gif" alt="Review next opens the overdue note; Mark reviewed moves its next date to December 1" width="100%">
 
 ## Install
 
-The plugin is not in the Obsidian community plugin list. Install it manually.
+Note Repetition is not in the community plugin list yet. Until it is, download `main.js`, `manifest.json` and `styles.css` from the [latest release](../../releases/latest) into `.obsidian/plugins/note-repetition/` in your vault. Then open **Settings → Community plugins** and enable **Note Repetition**.
 
-1. Install Node.js and pnpm 11.6 or later.
-2. In the repository folder, run `pnpm install`.
-3. Run `pnpm build`. This step makes `main.js` and `styles.css`.
-4. Copy `main.js`, `manifest.json` and `styles.css` to `<vault>/.obsidian/plugins/obsidian-note-repetition/`.
-5. In Obsidian, open **Settings > Community plugins** and enable **Note Repetition**.
+To build it yourself, see [Development](#development).
 
 ## Add a note
 
@@ -49,8 +44,6 @@ You can also use the file menu (**Add to note repetition**, **Repeat weekly**, *
 | `repetition-ease` | Plugin | Number, 130 or more (default 250) | Current ease. Spaced mode only. |
 
 If a value is not correct, the queue shows an error for that note.
-
-The plugin does not read or change the property `ToReview`.
 
 ## Review notes
 
@@ -100,7 +93,7 @@ The maximum interval is 36,525 days. The plugin rounds the interval to full days
 | Command | Function |
 |---|---|
 | `pnpm dev` | Builds the plugin and builds it again when a file changes. |
-| `pnpm build` | Does a type check and makes a production build. |
+| `pnpm build` | Does a type check and makes a production build in `build/main.js`. |
 | `pnpm test` | Runs the tests in `tests/note-repetition`. |
 | `pnpm check` | Runs the format check, lint, tests, build and version check. Run it before each commit. |
 
@@ -110,4 +103,6 @@ Keep the version the same in `package.json`, `manifest.json` and `versions.json`
 
 This plugin is a rewrite based on [obsidian-spaced-repetition](https://github.com/st3v3nmw/obsidian-spaced-repetition) by Stephen Mwangi and contributors. The note review idea and the scheduling formula come from that project. The flashcard functions are removed.
 
-The license is MIT. See `LICENSE`.
+The license is MIT. See [LICENSE](LICENSE).
+
+PS: The queue in the demo is my own. I write about taste, agency and what AI does to both on [friction](https://readfriction.substack.com).

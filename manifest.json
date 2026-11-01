@@ -1,9 +1,10 @@
 {
-    "id": "obsidian-note-repetition",
+    "id": "note-repetition",
     "name": "Note Repetition",
     "version": "1.0.0",
     "minAppVersion": "1.6.0",
     "description": "Queue whole notes for spaced repetition or a regular fixed interval.",
-    "author": "Timan",
+    "author": "Timon Wendland",
+    "authorUrl": "https://github.com/Timandilu",
     "isDesktopOnly": false
 }
