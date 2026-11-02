@@ -1,5 +1,4 @@
-import moment from "moment";
-import { App, Plugin, TFile } from "obsidian";
+import { App, moment, Plugin, TFile } from "obsidian";
 import { minimatch } from "minimatch";
 
 import { NoteRepetitionSettings, ReviewAction, ReviewItem } from "./note-repetition-types";

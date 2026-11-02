@@ -1,4 +1,5 @@
-import moment, { Moment } from "moment";
+import type { Moment } from "moment";
+import { moment } from "obsidian";
 
 import { logicalToday, parseReviewDate } from "./date-utils";
 import {

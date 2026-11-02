@@ -1,5 +1,4 @@
-import moment from "moment";
-import { ItemView, Menu, setIcon, TFile, WorkspaceLeaf } from "obsidian";
+import { ItemView, Menu, moment, setIcon, TFile, WorkspaceLeaf } from "obsidian";
 
 import type NoteRepetitionPlugin from "./main";
 import { describeInterval } from "./interval";

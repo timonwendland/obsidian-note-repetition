@@ -1,4 +1,4 @@
-import moment from "moment";
+import { moment } from "obsidian";
 
 import { parseNoteRepetitionProperties } from "../../src/properties";
 import { completeSpacedSchedule } from "../../src/scheduler";

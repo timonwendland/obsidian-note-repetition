@@ -6,7 +6,6 @@
         "target": "ES2018",
         "strict": true,
         "moduleResolution": "bundler",
-        "esModuleInterop": true,
         "importHelpers": true,
         "types": ["node", "jest"],
         "lib": ["DOM", "DOM.Iterable", "ES2021"],

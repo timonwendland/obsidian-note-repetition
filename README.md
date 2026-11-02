@@ -29,7 +29,7 @@ repetition-mode: interval
 repetition-every: 1w
 ```
 
-You can also use the file menu (**Add to note repetition**, **Repeat weekly**, **Repeat monthly**) or the commands below.
+You can also use the file menu (**Add to review queue**, **Repeat weekly**, **Repeat monthly**) or the commands below.
 
 ### Properties
 
@@ -45,14 +45,16 @@ You can also use the file menu (**Add to note repetition**, **Repeat weekly**, *
 
 If a value is not correct, the queue shows an error for that note.
 
+To build the queue, the plugin reads the properties of every Markdown note in the vault, except the ignored paths. It writes only to the properties of notes that you add or review, and it sends nothing over the network.
+
 ## Review notes
 
-- To open the queue, click the calendar-clock icon in the ribbon or use the command **Open note repetition queue**.
+- To open the queue, click the calendar-clock icon in the ribbon or use the command **Open review queue**.
 - To open the next due note, use **Review next due note**.
 - For an interval note, use **Mark current interval note reviewed**. The next due date is today plus the interval.
 - For a spaced note, use **Review current spaced note: Again**, **Hard**, **Good** or **Easy**.
-- To start the schedule again, use **Reset current note repetition schedule**.
-- To remove a note, use **Remove from note repetition** in the file menu.
+- To start the schedule again, use **Reset current note schedule**.
+- To remove a note, use **Remove from review queue** in the file menu.
 
 ## Spaced schedule
 

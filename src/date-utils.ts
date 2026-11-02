@@ -1,4 +1,5 @@
-import moment, { Moment } from "moment";
+import type { Moment } from "moment";
+import { moment } from "obsidian";
 
 const DATE_FORMAT = "YYYY-MM-DD";
 const START_OF_DAY_PATTERN = /^(\d{2}):(\d{2})(?::(\d{2}))?$/;

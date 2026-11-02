@@ -1,8 +1,8 @@
 {
     "id": "note-repetition",
     "name": "Note Repetition",
-    "version": "1.0.0",
-    "minAppVersion": "1.6.0",
+    "version": "1.0.1",
+    "minAppVersion": "1.7.2",
     "description": "Queue whole notes for spaced repetition or a regular fixed interval.",
     "author": "Timon Wendland",
     "authorUrl": "https://github.com/timonwendland",

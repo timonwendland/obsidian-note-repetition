@@ -1,4 +1,5 @@
-import moment, { Moment } from "moment";
+import type { Moment, unitOfTime } from "moment";
+import { moment } from "obsidian";
 
 import { formatReviewDate, logicalToday } from "./date-utils";
 import {
@@ -22,7 +23,7 @@ export function completeIntervalSchedule(
         w: "weeks",
         m: "months",
         y: "years",
-    }[spec.unit] as moment.unitOfTime.DurationConstructor;
+    }[spec.unit] as unitOfTime.DurationConstructor;
     const due = today.clone().add(spec.amount, calendarUnit);
     return {
         due: formatReviewDate(due),

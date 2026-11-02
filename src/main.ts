@@ -27,7 +27,7 @@ export default class NoteRepetitionPlugin extends Plugin {
         this.removeManagerListener = this.reviewManager.onChange(() => this.updateStatusBar());
 
         this.addSettingTab(new NoteRepetitionSettingTab(this));
-        this.addRibbonIcon("calendar-clock", "Open note repetition queue", () => {
+        this.addRibbonIcon("calendar-clock", "Open review queue", () => {
             void this.openQueue();
         });
         this.statusBar = this.addStatusBarItem();
@@ -102,7 +102,7 @@ export default class NoteRepetitionPlugin extends Plugin {
         if (!item) {
             menu.addItem((entry) =>
                 entry
-                    .setTitle("Add to note repetition")
+                    .setTitle("Add to review queue")
                     .setIcon("calendar-plus")
                     .onClick(() => void this.reviewManager.enable(file)),
             );
@@ -158,7 +158,7 @@ export default class NoteRepetitionPlugin extends Plugin {
         );
         menu.addItem((entry) =>
             entry
-                .setTitle("Remove from note repetition")
+                .setTitle("Remove from review queue")
                 .setIcon("calendar-x")
                 .onClick(() => void this.reviewManager.remove(file)),
         );
@@ -166,8 +166,8 @@ export default class NoteRepetitionPlugin extends Plugin {
 
     private registerCommands(): void {
         this.addCommand({
-            id: "open-note-repetition-queue",
-            name: "Open note repetition queue",
+            id: "open-review-queue",
+            name: "Open review queue",
             callback: () => void this.openQueue(),
         });
         this.addCommand({
@@ -177,7 +177,7 @@ export default class NoteRepetitionPlugin extends Plugin {
         });
         this.addCommand({
             id: "enable-current-note",
-            name: "Add current note to note repetition",
+            name: "Add current note to review queue",
             checkCallback: (checking) => {
                 const file = this.activeMarkdownFile();
                 if (!file || this.reviewManager.getItem(file)) return false;
@@ -219,7 +219,7 @@ export default class NoteRepetitionPlugin extends Plugin {
         }
         this.addCommand({
             id: "reset-current-note-schedule",
-            name: "Reset current note repetition schedule",
+            name: "Reset current note schedule",
             checkCallback: (checking) => {
                 const file = this.activeMarkdownFile();
                 if (!file || !this.reviewManager.getItem(file)) return false;

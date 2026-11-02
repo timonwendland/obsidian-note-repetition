@@ -1,4 +1,4 @@
-import moment from "moment";
+import { moment } from "obsidian";
 
 import { parseInterval } from "../../src/interval";
 import { DEFAULT_SETTINGS } from "../../src/settings";
